@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hela NV — QR-code generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --blue: #1a56db;
+    --text: #111928;
+    --text-mid: #4b5563;
+    --text-soft: #9ca3af;
+    --border: #e5e7eb;
+    --bg: #f9fafb;
+    --white: #ffffff;
+    --green: #057a55; --green-bg: #f3faf7; --green-border: #bcf0da;
+    --orange: #b45309; --orange-bg: #fffbeb; --orange-border: #fcd34d;
+    --red: #c81e1e; --red-bg: #fdf2f2; --red-border: #fbd5d5;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+  .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+  .logo-area { display: flex; align-items: center; gap: 12px; }
+  .logo-img { height: 32px; }
+  .logo-divider { width: 1px; height: 24px; background: var(--border); }
+  .logo-text { font-size: 13px; font-weight: 600; color: var(--text-mid); }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  .top-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--text-mid); }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--white); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow); transition: border-color 0.15s; }
+  .btn:hover { border-color: #9ca3af; }
+  .btn-primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .btn-primary:hover { background: #1447c0; border-color: #1447c0; }
+
+  .filter-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-row input, .filter-row select { background: var(--white); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; box-shadow: var(--shadow); }
+  .filter-row input { flex: 1; min-width: 200px; }
+  .filter-row input::placeholder { color: var(--text-soft); }
+  .filter-row input:focus, .filter-row select:focus { border-color: var(--blue); }
+
+  .stats { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; }
+  .stat-pill.total { background: #f3f4f6; color: var(--text-mid); border-color: var(--border); }
+  .stat-pill.groen { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .stat-pill.oranje { background: var(--orange-bg); color: var(--orange); border-color: var(--orange-border); }
+  .stat-pill.rood { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+
+  .qr-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 12px; text-align: center; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .qr-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .qr-card.s-groen::after { background: var(--green); }
+  .qr-card.s-oranje::after { background: var(--orange); }
+  .qr-card.s-rood::after { background: var(--red); }
+
+  .qr-canvas-wrap { width: 140px; height: 140px; margin: 0 auto 10px; }
+  .qr-canvas-wrap img, .qr-canvas-wrap canvas { width: 140px !important; height: 140px !important; }
+
+  .qr-naam { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qr-nr { font-size: 11px; color: var(--text-soft); font-family: monospace; margin-bottom: 6px; }
+  .qr-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; border: 1px solid; }
+  .badge-groen { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .badge-oranje { background: var(--orange-bg); color: var(--orange); border-color: var(--orange-border); }
+  .badge-rood { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .qr-url { font-size: 9px; color: var(--text-soft); margin-top: 6px; word-break: break-all; display: none; }
+
+  .loading { text-align: center; padding: 60px; color: var(--text-soft); grid-column: 1/-1; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media print {
+    .header, .top-bar, .filter-row, .stats, .actions { display: none !important; }
+    .wrap { padding: 0; max-width: 100%; }
+    body { background: white; }
+    .qr-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .qr-card { border: 1px solid #ddd; box-shadow: none; page-break-inside: avoid; }
+    .qr-card::after { display: none; }
+    .qr-url { display: block !important; }
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 0 16px; }
+    .wrap { padding: 20px 16px; }
+    .qr-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-area">
+    <img src="Logo_Hela.png" alt="Hela NV" class="logo-img" onerror="this.style.display='none'">
+    <div class="logo-divider"></div>
+    <div class="logo-text">QR-code generator</div>
+  </div>
+  <div style="font-size:12px;color:var(--text-soft)" id="header-date"></div>
+</header>
+
+<div class="wrap">
+  <div class="top-bar">
+    <div>
+      <div class="page-title">QR-codes arbeidsmiddelen</div>
+      <div class="page-sub" id="page-sub">Laden...</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="window.print()">&#128438; Afdrukken</button>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <input type="text" id="zoek" placeholder="Zoek op naam of nummer..." oninput="filterQR()">
+    <select id="filterStatus" onchange="filterQR()">
+      <option value="">Alle statussen</option>
+      <option value="Goedgekeurd">Goedgekeurd</option>
+      <option value="Goedgekeurd met opmerking">Met opmerking</option>
+      <option value="Afgekeurd">Afgekeurd</option>
+    </select>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="qr-grid" id="qr-grid"><div class="loading"><div class="spinner"></div>QR-codes worden gegenereerd...</div></div>
+</div>
+
+<script>
+const BASE_URL = 'https://timmentens1234-cell.github.io/Hela-keuringen';
+const SHEETS_ID = '1j8Y4mrrAudH4n1dSXLIem0iH9JPXzsJUFkOcdrX5VJg';
+const SHEETS_NAME = 'query (2)';
+const SHEETS_KEY = ['AIzaSyDDcxFp_CnQkwg','T_nR7zpbYW2_0FC9plGg'].join('');
+
+let alle = [];
+
+const sk = s => s==='Goedgekeurd'?'groen':s==='Afgekeurd'?'rood':'oranje';
+const sl = {'Goedgekeurd':'Goedgekeurd','Afgekeurd':'Afgekeurd','Goedgekeurd met opmerking':'Met opmerking'};
+
+async function laadMachines() {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_ID}/values/${encodeURIComponent(SHEETS_NAME)}?key=${SHEETS_KEY}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const rows = d.values || [];
+    if (rows.length < 2) throw new Error();
+    const h = rows[0].map(v => v.toLowerCase().trim());
+    const g = n => h.indexOf(n);
+    return rows.slice(1).map(row => {
+      const v = i => (row[i]||'').trim();
+      const opmerking = v(g('opmerkingen'));
+      let status = v(g('status'));
+      if (status==='Goedgekeurd' && opmerking) status = 'Goedgekeurd met opmerking';
+      return { id: v(g('intern nummer')), naam: v(g('title')), status };
+    }).filter(m => m.id);
+  } catch(e) {
+    return [];
+  }
+}
+
+function renderStats(lijst) {
+  const g = lijst.filter(m => m.status==='Goedgekeurd').length;
+  const o = lijst.filter(m => m.status==='Goedgekeurd met opmerking').length;
+  const r = lijst.filter(m => m.status==='Afgekeurd').length;
+  document.getElementById('stats').innerHTML = `
+    <span class="stat-pill total">${lijst.length} machines</span>
+    <span class="stat-pill groen">${g} goedgekeurd</span>
+    ${o ? `<span class="stat-pill oranje">${o} met opmerking</span>` : ''}
+    ${r ? `<span class="stat-pill rood">${r} afgekeurd</span>` : ''}
+  `;
+}
+
+function renderQR(lijst) {
+  const grid = document.getElementById('qr-grid');
+  if (!lijst.length) { grid.innerHTML = '<div class="loading">Geen machines gevonden.</div>'; return; }
+
+  grid.innerHTML = lijst.map(m => `
+    <div class="qr-card s-${sk(m.status)}">
+      <div class="qr-canvas-wrap" id="qr-${m.id}"></div>
+      <div class="qr-naam" title="${m.naam}">${m.naam}</div>
+      <div class="qr-nr">NR. ${m.id}</div>
+      <span class="qr-badge badge-${sk(m.status)}">${sl[m.status]||m.status}</span>
+      <div class="qr-url">${BASE_URL}?id=${m.id}</div>
+    </div>
+  `).join('');
+
+  lijst.forEach(m => {
+    const el = document.getElementById(`qr-${m.id}`);
+    if (!el) return;
+    try {
+      new QRCode(el, {
+        text: `${BASE_URL}?id=${m.id}`,
+        width: 140,
+        height: 140,
+        colorDark: '#111928',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {}
+  });
+}
+
+function filterQR() {
+  const z = document.getElementById('zoek').value.toLowerCase();
+  const s = document.getElementById('filterStatus').value;
+  const f = alle.filter(m =>
+    (!z || m.naam.toLowerCase().includes(z) || m.id.includes(z)) &&
+    (!s || m.status === s)
+  );
+  renderQR(f);
+  renderStats(f);
+}
+
+async function init() {
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('nl-BE', {day:'2-digit', month:'long', year:'numeric'});
+  alle = await laadMachines();
+  document.getElementById('page-sub').textContent = alle.length
+    ? `${alle.length} machines geladen — klik op Afdrukken voor een afdrukklare versie`
+    : 'Kon geen machines laden';
+  renderStats(alle);
+  renderQR(alle);
+}
+
+init();
+</script>
+</body>
+</html>
